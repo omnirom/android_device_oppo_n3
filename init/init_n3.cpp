@@ -1,5 +1,5 @@
 /*
-   Copyright (c) 2014, The CyanogenMod Project
+   Copyright (c) 2013, The Linux Foundation. All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -28,13 +28,17 @@
  */
 
 #include <stdlib.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include "vendor_init.h"
 #include "property_service.h"
 #include "log.h"
 #include "util.h"
 
-static void import_kernel_nv(char *name, int for_emulator)
+static void process_cmdline(char *name, int for_emulator)
 {
     char *value = strchr(name, '=');
     int name_len = strlen(name);
@@ -74,8 +78,9 @@ static void import_kernel_nv(char *name, int for_emulator)
     property_set("ro.oppo.device", "n3");
 }
 
+extern "C" {
 void vendor_load_properties()
 {
-    import_kernel_cmdline(0, import_kernel_nv);
+    import_kernel_cmdline(0,process_cmdline);
 }
-
+}

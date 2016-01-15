@@ -22,29 +22,15 @@ on early-init
     mount debugfs debugfs /sys/kernel/debug
 
 on init
+    # Preload the BoringSSL wrapper
+    export LD_PRELOAD "/system/lib/libboringssl-compat.so"
+
     # Set permissions for persist partition
     mkdir /persist 0771 system system
 
-    mkdir /mnt/shell/emulated 0700 shell shell
-    mkdir /storage/emulated 0555 root root
-    mkdir /mnt/media_rw/usbdisk 0555 root root
-    mkdir /mnt/media_rw/sdcard1 0775 system system
-
-    mkdir /storage/sdcard1 0000 system system
-    mkdir /storage/usbdisk 0000 system system
-
-    export EXTERNAL_STORAGE /storage/emulated/legacy
-    export EMULATED_STORAGE_SOURCE /mnt/shell/emulated
-    export EMULATED_STORAGE_TARGET /storage/emulated
-    export SECONDARY_STORAGE /storage/sdcard1:/storage/usbdisk
-
-    symlink /storage/emulated/legacy /sdcard
-    symlink /storage/emulated/legacy /mnt/sdcard
-    symlink /storage/emulated/legacy /storage/sdcard0
-    symlink /mnt/shell/emulated/0 /storage/emulated/legacy
-
-    symlink /storage/usbdisk /usbdisk
-    symlink /storage/usbdisk /mnt/usbdisk
+    # Support legacy paths
+    symlink /sdcard /mnt/sdcard
+    symlink /sdcard /storage/sdcard0
 
     # bluetooth
     mkdir /data/misc/bluetooth 0770 bluetooth bluetooth
@@ -54,19 +40,7 @@ on fs
 
     setprop ro.crypto.fuse_sdcard true
 
-    # Keeping following partitions outside fstab file. As user may not have
-    # these partition flashed on the device. Failure to mount any partition in fstab file
-    # results in failure to launch late-start class.
-
-    wait /dev/block/platform/msm_sdcc.1/by-name/cache
-    mount ext4 /dev/block/platform/msm_sdcc.1/by-name/cache /cache nosuid nodev barrier=1
-
-    wait /dev/block/platform/msm_sdcc.1/by-name/persist
-    mount ext4 /dev/block/platform/msm_sdcc.1/by-name/persist /persist nosuid nodev barrier=1
     restorecon_recursive /persist
-
-    wait /dev/block/platform/msm_sdcc.1/by-name/modem
-    mount vfat /dev/block/platform/msm_sdcc.1/by-name/modem /firmware ro shortname=lower,uid=1000,gid=1000,dmask=227,fmask=337,context=u:object_r:firmware_file:s0
 
 on early-boot
     # set RLIMIT_MEMLOCK to 64MB
@@ -74,10 +48,6 @@ on early-boot
     write /sys/kernel/boot_adsp/boot 1
 
 on boot
-    #Oppo nv dump stuff - probably needed for BT MAC address.
-    #hci_qcomm_init does want to look here
-    mkdir /data/opponvitems  0771 radio radio
-
     #Create QMUX deamon socket area
     mkdir /dev/socket/qmux_radio 0770 radio radio
     chmod 2770 /dev/socket/qmux_radio
@@ -133,18 +103,23 @@ on boot
     # create symlink for fb1 as HDMI
     symlink /dev/graphics/fb1 /dev/graphics/hdmi
 
-    # Remove write permissions to video related nodes
+    # setup permissions for fb1 related nodes
+    chown system graphics /sys/class/graphics/fb1/hpd
+    chown system graphics /sys/class/graphics/fb1/vendor_name
+    chown system graphics /sys/class/graphics/fb1/product_description
     chmod 0664 /sys/devices/virtual/graphics/fb1/hpd
-    chmod 0664 /sys/devices/virtual/graphics/fb1/video_mode
-    chmod 0664 /sys/devices/virtual/graphics/fb1/format_3d
-
-    # Change owner and group for media server and surface flinger
-    chown system system /sys/devices/virtual/graphics/fb1/format_3d
-    chown system system /sys/devices/virtual/graphics/fb1/hpd
+    chmod 0664 /sys/devices/virtual/graphics/fb1/vendor_name
+    chmod 0664 /sys/devices/virtual/graphics/fb1/product_description
 
     # MDP idle notifier
     chown system graphics /sys/class/graphics/fb0/idle_time
     chmod 0664 /sys/class/graphics/fb0/idle_time
+    chown system graphics /sys/class/graphics/fb0/idle_notify
+    chmod 0664 /sys/class/graphics/fb0/idle_notify
+
+    # dynamic fps
+    chown system graphics /sys/class/graphics/fb0/dynamic_fps
+    chmod 0664 /sys/class/graphics/fb0/dynamic_fps
 
     #For bridgemgr daemon to inform the USB driver of the correct transport
     chown radio radio /sys/class/android_usb/f_rmnet_smd_sdio/transport
@@ -155,8 +130,7 @@ on boot
     chown root system /proc/net/ip_conntrack
 
     # NFC
-    chmod 0600 /dev/pn544
-    chown nfc nfc /dev/pn544
+    symlink /dev/pn544 /dev/pn54x
 
     # Enable DEBUG_SUSPEND, DEBUG_EXIT_SUSPEND, and DEBUG_WAKEUP
     write /sys/module/wakelock/parameters/debug_mask 7
@@ -227,6 +201,7 @@ on boot
     chown system system /sys/kernel/touchscreen/camera_enable
     chown system system /sys/kernel/touchscreen/flashlight_enable
     chown system system /sys/kernel/touchscreen/double_tap_enable
+    chown system system /sys/kernel/touchscreen/button_disable
 
     # cpuquiet
     chown system system /sys/devices/system/cpu/cpuquiet/cpuquiet_driver/max_cpus
@@ -364,16 +339,17 @@ service rfs_access /system/bin/rfs_access
 
 on property:ro.boot.emmc=true
     start rfs_access
-    
+
 #service bdAddrLoader /system/bin/bdAddrLoader -f /persist/bluetooth/.bdaddr -h -x
 #    class main
 #    user bluetooth
 #    group system bluetooth
-#    oneshot 
+#    oneshot
 
 service config_bluetooth /system/bin/sh /system/etc/init.qcom.bt.sh "onboot"
     class core
     user root
+    seclabel u:r:bluetooth_loader:s0
     oneshot
 
 service hciattach /system/bin/sh /system/etc/init.qcom.bt.sh
@@ -381,6 +357,7 @@ service hciattach /system/bin/sh /system/etc/init.qcom.bt.sh
     user bluetooth
     group qcom_oncrpc bluetooth net_bt_admin system
     disabled
+    seclabel u:r:bluetooth_loader:s0
     oneshot
 
 on property:bluetooth.hciattach=true
@@ -520,19 +497,12 @@ service qseecomd /system/bin/qseecomd
     user root
     group root
 
-service mac-update /system/bin/mac-update
-    class late_start
-    user system
-    group system wifi
-    oneshot
-
 service wcnss-service /system/bin/wcnss_service
-   class late_start
-   user system
-   group system wifi
-   oneshot
+    class main
+    user system
+    group system wifi qcom_diag radio
 
-service time_daemon /system/bin/logwrapper /system/bin/time_daemon
+service time_daemon /system/bin/time_daemon
     class late_start
     user root
     group root radio qcom_diag
@@ -560,20 +530,8 @@ service ril-daemon2 /system/bin/rild -c 2
     disabled
     group radio cache inet misc audio sdcard_r sdcard_rw diag qcom_diag log
 
-# virtual sdcard daemon running as media_rw (1023)
-service fuse /system/bin/sdcard -u 1023 -g 1023 -l /data/media /mnt/shell/emulated
-    class late_start
-
-service fuse_sdcard1 /system/bin/sdcard -u 1023 -g 1023 -d /mnt/media_rw/sdcard1 /storage/sdcard1
-    class late_start
-    disabled
-
-service fuse_usbdisk /system/bin/sdcard -u 1023 -g 1023 -d /mnt/media_rw/usbdisk /storage/usbdisk
-    class late_start
-    disabled
 
 service loc_launcher /system/bin/loc_launcher
     #loc_launcher will start as root and set its uid to gps
     class late_start
     group gps qcom_oncrpc inet net_raw qcom_diag net_admin wifi
-
