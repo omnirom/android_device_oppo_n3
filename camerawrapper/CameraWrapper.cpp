@@ -22,7 +22,7 @@
 */
 
 //#define LOG_NDEBUG 0
-#define LOG_PARAMETERS 1
+//#define LOG_PARAMETERS 1
 
 #define LOG_TAG "CameraWrapper"
 #include <cutils/log.h>
@@ -81,6 +81,8 @@ camera_module_t HAL_MODULE_INFO_SYM = {
     .set_callbacks = NULL, /* remove compilation warnings */
     .get_vendor_tag_ops = NULL, /* remove compilation warnings */
     .open_legacy = NULL, /* remove compilation warnings */
+    .set_torch_mode = NULL, /* remove compilation warnings */
+    .init = NULL,
     .reserved = {0}, /* remove compilation warnings */
 };
 
@@ -687,7 +689,7 @@ static int camera_device_open(const hw_module_t *module, const char *name,
         memset(camera_ops, 0, sizeof(*camera_ops));
 
         camera_device->base.common.tag = HARDWARE_DEVICE_TAG;
-        camera_device->base.common.version = 0;
+        camera_device->base.common.version = HARDWARE_DEVICE_API_VERSION(1, 0);
         camera_device->base.common.module = (hw_module_t *)(module);
         camera_device->base.common.close = camera_device_close;
         camera_device->base.ops = camera_ops;

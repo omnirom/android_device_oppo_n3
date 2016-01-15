@@ -9,14 +9,15 @@ PRODUCT_COPY_FILES += \
 # Properties
 PRODUCT_PROPERTY_OVERRIDES += \
     audio.offload.pcm.16bit.enable=false \
-    audio.offload.disable=true
-
-# must be before common one since we want to 
-# overlay same files in vendor
-$(call inherit-product, vendor/oppo/n3/n3-vendor.mk)
+    audio.offload.disable=true \
+    audio.offload.video=false \
+    audio.offload.gapless.enabled=false
 
 # Include common makefile
 $(call inherit-product, device/oppo/msm8974-common/common.mk)
+
+$(call inherit-product, frameworks/native-caf/build/phone-xxxhdpi-3072-dalvik-heap.mk)
+$(call inherit-product, frameworks/native-caf/build/phone-xxhdpi-2048-hwui-memory.mk)
 
 DEVICE_PACKAGE_OVERLAYS += $(LOCAL_PATH)/overlay
 
@@ -29,23 +30,21 @@ PRODUCT_COPY_FILES += \
 # NFC packages
 PRODUCT_PACKAGES += \
     NfcNci \
-    nfc_nci.pn54x.default \
+    nfc_nci.n3 \
     Tag \
     OmniClick
 
 PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.hardware.nfc.hce.xml:system/etc/permissions/android.hardware.nfc.hce.xml \
-    $(LOCAL_PATH)/configs/libnfc-nxp.conf:system/etc/libnfc-nxp.conf \
     $(LOCAL_PATH)/configs/libnfc-brcm.conf:system/etc/libnfc-brcm.conf
 
-# Sensor configuration
+# Sensor configuration from Oppo
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/sensor/sensor_def_qcomdev.conf:system/etc/sensor_def_qcomdev.conf
 
 # Properties
 PRODUCT_PROPERTY_OVERRIDES += \
-    ro.sf.lcd_density=480
-    
-    #persist.radio.multisim.config=dsds \
+    ro.sf.lcd_density=480 \
+    persist.radio.multisim.config=dsds
 
 

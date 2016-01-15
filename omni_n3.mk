@@ -29,10 +29,15 @@ $(call inherit-product, vendor/omni/config/gsm.mk)
 $(call inherit-product, $(SRC_TARGET_DIR)/product/aosp_base_telephony.mk)
 
 # must be before including omni part
-TARGET_BOOTANIMATION_SIZE := 720x480
+TARGET_BOOTANIMATION_SIZE := 1080x608
 
 # Inherit from our custom product configuration
 $(call inherit-product, vendor/omni/config/common.mk)
+
+# Inherit from proprietary blobs
+# MUST be before device.mk cause this will pull in
+# common vendor there and we want to overwrite files from there
+$(call inherit-product, vendor/oppo/n3/n3-vendor.mk)
 
 # Inherit from hardware-specific part of the product configuration
 $(call inherit-product, device/oppo/n3/device.mk)
@@ -51,4 +56,3 @@ PRODUCT_BUILD_PROP_OVERRIDES += \
 # Inline kernel
 TARGET_KERNEL_SOURCE := kernel/oppo/msm8974
 TARGET_KERNEL_CONFIG := msm8974_n3_defconfig
-
