@@ -32,6 +32,9 @@ on init
     symlink /sdcard /mnt/sdcard
     symlink /sdcard /storage/sdcard0
 
+    # NXP HAL expects /dev/pn54x
+    symlink /dev/pn544 /dev/pn54x
+
     # bluetooth
     mkdir /data/misc/bluetooth 0770 bluetooth bluetooth
 
@@ -127,9 +130,6 @@ on boot
 
     chown root system /proc/net/ip_conntrack
 
-    # NFC
-    symlink /dev/pn544 /dev/pn54x
-
     # Enable DEBUG_SUSPEND, DEBUG_EXIT_SUSPEND, and DEBUG_WAKEUP
     write /sys/module/wakelock/parameters/debug_mask 7
 
@@ -200,6 +200,11 @@ on boot
     chown system system /sys/kernel/touchscreen/flashlight_enable
     chown system system /sys/kernel/touchscreen/double_tap_enable
     chown system system /sys/kernel/touchscreen/button_disable
+
+    # vibrator
+    chown system system /sys/devices/virtual/timed_output/vibrator/vtg_level
+    chown system system /sys/devices/virtual/timed_output/vibrator/vtg_min
+    chown system system /sys/devices/virtual/timed_output/vibrator/vtg_max
 
     # cpuquiet
     chown system system /sys/devices/system/cpu/cpuquiet/cpuquiet_driver/max_cpus
@@ -418,28 +423,61 @@ service p2p_supplicant /system/bin/wpa_supplicant \
     disabled
     oneshot
 
-
 service dhcpcd_wlan0 /system/bin/dhcpcd -aABDKL
-    class main
+    class late_start
     disabled
     oneshot
 
 service dhcpcd_p2p /system/bin/dhcpcd -aABKL
-    class main
+    class late_start
     disabled
     oneshot
 
 service iprenew_wlan0 /system/bin/dhcpcd -n
-    class main
+    class late_start
     disabled
     oneshot
 
 service iprenew_p2p /system/bin/dhcpcd -n
-    class main
+    class late_start
+    disabled
+    oneshot
+
+service dhcpcd_eth0 /system/bin/dhcpcd -aABDKL
+    class late_start
+    disabled
+    oneshot
+
+service iprenew_eth0 /system/bin/dhcpcd -n
+    class late_start
     disabled
     oneshot
 
 service dhcpcd_bnep0 /system/bin/dhcpcd -BKLG
+    disabled
+    oneshot
+
+service dhcpcd_bnep1 /system/bin/dhcpcd -BKLG
+    disabled
+    oneshot
+
+service dhcpcd_bnep2 /system/bin/dhcpcd -BKLG
+    disabled
+    oneshot
+
+service dhcpcd_bnep3 /system/bin/dhcpcd -BKLG
+    disabled
+    oneshot
+
+service dhcpcd_bnep4 /system/bin/dhcpcd -BKLG
+    disabled
+    oneshot
+
+service dhcpcd_bt-pan /system/bin/dhcpcd -BKLG
+    disabled
+    oneshot
+
+service iprenew_bt-pan /system/bin/dhcpcd -n
     disabled
     oneshot
 
