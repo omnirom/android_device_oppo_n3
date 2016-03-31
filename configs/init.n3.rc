@@ -58,6 +58,7 @@ on boot
     chmod 2770 /dev/socket/qmux_bluetooth
     mkdir /dev/socket/qmux_gps 0770 gps gps
     chmod 2770 /dev/socket/qmux_gps
+    mkdir /dev/socket/netmgr 0750 radio radio
 
     #Light Permissions
     #below are additions to the AOSP init.rc. Entries for button-backlight are located there.
@@ -82,9 +83,6 @@ on boot
     chmod 0660 /sys/class/motor/cameramotor/pwm_enable
     chmod 0660 /proc/cam_block
 
-    #Start rmnet_usb driver
-    write /sys/module/rmnet_usb/parameters/rmnet_data_init 1
-
     # Allow QMUX daemon to assign port open wait time
     chown radio radio /sys/devices/virtual/hsicctl/hsicctl0/modem_wait
 
@@ -98,8 +96,6 @@ on boot
     #BT DUN port-bridge
     chmod 0660 /dev/smd7
     chown bluetooth bluetooth /dev/smd7
-
-    chmod 0444 /sys/devices/platform/msm_hsusb/gadget/usb_state
 
     # create symlink for fb1 as HDMI
     symlink /dev/graphics/fb1 /dev/graphics/hdmi
@@ -121,9 +117,6 @@ on boot
     # dynamic fps
     chown system graphics /sys/class/graphics/fb0/dynamic_fps
     chmod 0664 /sys/class/graphics/fb0/dynamic_fps
-
-    #For bridgemgr daemon to inform the USB driver of the correct transport
-    chown radio radio /sys/class/android_usb/f_rmnet_smd_sdio/transport
 
     chmod 660 /dev/rtc0
     chown system system /dev/rtc0
@@ -150,6 +143,10 @@ on boot
     write /proc/sys/net/ipv6/conf/rmnet_sdio5/accept_ra 2
     write /proc/sys/net/ipv6/conf/rmnet_sdio6/accept_ra 2
     write /proc/sys/net/ipv6/conf/rmnet_sdio7/accept_ra 2
+    write /proc/sys/net/ipv6/conf/rmnet_usb0/accept_ra 2
+    write /proc/sys/net/ipv6/conf/rmnet_usb1/accept_ra 2
+    write /proc/sys/net/ipv6/conf/rmnet_usb2/accept_ra 2
+    write /proc/sys/net/ipv6/conf/rmnet_usb3/accept_ra 2
 
     ## Torch led
     chown system camera /sys/class/leds/led:flash_torch/brightness
@@ -378,7 +375,7 @@ on property:bluetooth.hciattach=false
 service qmuxd /system/bin/qmuxd
     class main
     user radio
-    group radio audio bluetooth gps qcom_diag
+    group radio audio bluetooth gps diag qcom_diag
 
 service audiod /system/bin/audiod
     class main
@@ -387,6 +384,8 @@ service audiod /system/bin/audiod
 
 service netmgrd /system/bin/netmgrd
     class main
+    user root
+    group radio
 
 service sensors /system/bin/sensors.qcom
     class late_start
@@ -548,9 +547,9 @@ service adsprpcd /system/bin/adsprpcd
    user media
    group media
 
-service diag_mdlog /system/bin/diag_mdlog -s 100
-    class late_start
-    disabled
+#service diag_mdlog /system/bin/diag_mdlog -s 100
+#    class late_start
+#    disabled
 
 # on property:gsm.sim.state=READY
 #    start diag_mdlog
@@ -561,11 +560,11 @@ on property:persist.radio.multisim.config=dsds
 service ril-daemon2 /system/bin/rild -c 2
     class main
     socket rild2 stream 660 root radio
+    socket sap_uim_socket2 stream 660 bluetooth bluetooth
     socket rild-debug2 stream 660 radio system
     user root
-    disabled
     group radio cache inet misc audio sdcard_r sdcard_rw diag qcom_diag log
-
+    disabled
 
 service loc_launcher /system/bin/loc_launcher
     #loc_launcher will start as root and set its uid to gps

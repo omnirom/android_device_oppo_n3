@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2014 The OmniROM Project
+ *  Copyright (C) 2016 The OmniROM Project
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -73,8 +73,8 @@ public class OClickControlActivity extends Activity {
     private static final int REQUEST_SELECT_RINGTONE = 2;
 
     private TextView mConnectionState;
-    private TextView mFindPhoneAlertTone;
-    private TextView mFindPhoneAlertToneTitle;
+    //private TextView mFindPhoneAlertTone;
+    //private TextView mFindPhoneAlertToneTitle;
     private TextView mDeviceAddressField;
     private String mDeviceName;
     private String mDeviceAddress;
@@ -86,14 +86,14 @@ public class OClickControlActivity extends Activity {
     private boolean mRingtoneSelect;
     private Handler mHandler;
     private BroadcastReceiver mGattUpdateReceiver;
-    private CheckBox mFindPhoneAlert;
-    private TextView mFindPhoneAlertTitle;
+    //private CheckBox mFindPhoneAlert;
+    //private TextView mFindPhoneAlertTitle;
     private CheckBox mMusicControl;
     private TextView mMusicControlTitle;
     private TextView mMusicControlSummary;
     private View mProgress;
     private ProgressBar mProgressBar;
-    private Button mCallOClick;
+    //private Button mCallOClick;
 
     // Handles various events fired by the Service.
     // ACTION_GATT_CONNECTED: connected to a GATT server.
@@ -171,7 +171,7 @@ public class OClickControlActivity extends Activity {
             }
         });
 
-        CheckBox proximityAlert = (CheckBox) findViewById(R.id.proximity_alert);
+        /*CheckBox proximityAlert = (CheckBox) findViewById(R.id.proximity_alert);
         proximityAlert.setChecked(mPrefs.getBoolean(
                 OClickControlActivity.OCLICK_PROXIMITY_ALERT_KEY, true));
         proximityAlert
@@ -221,7 +221,7 @@ public class OClickControlActivity extends Activity {
                 }
                 return true;
             }
-        });
+        });*/
 
         CheckBox snapPicture = (CheckBox) findViewById(R.id.snap_picture);
         snapPicture.setChecked(mPrefs.getBoolean(
@@ -242,11 +242,11 @@ public class OClickControlActivity extends Activity {
         mMusicControl = (CheckBox) findViewById(R.id.music_control);
         mMusicControl.setChecked(mPrefs.getBoolean(
                 OClickControlActivity.OCLICK_MUSIC_CONTROL_KEY, false));
-        mMusicControl.setEnabled(!mFindPhoneAlert.isChecked());
-        mMusicControlTitle.setEnabled(!mFindPhoneAlert.isChecked());
-        mMusicControlSummary.setEnabled(!mFindPhoneAlert.isChecked());
-        mFindPhoneAlert.setEnabled(!mMusicControl.isChecked());
-        mFindPhoneAlertTitle.setEnabled(!mMusicControl.isChecked());
+        //mMusicControl.setEnabled(!mFindPhoneAlert.isChecked());
+        //mMusicControlTitle.setEnabled(!mFindPhoneAlert.isChecked());
+        //mMusicControlSummary.setEnabled(!mFindPhoneAlert.isChecked());
+        /*mFindPhoneAlert.setEnabled(!mMusicControl.isChecked());
+        mFindPhoneAlertTitle.setEnabled(!mMusicControl.isChecked());*/
         mMusicControl.setOnCheckedChangeListener(new OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView,
@@ -255,12 +255,12 @@ public class OClickControlActivity extends Activity {
                         .putBoolean(
                                 OClickControlActivity.OCLICK_MUSIC_CONTROL_KEY,
                                 isChecked).commit();
-                mFindPhoneAlert.setEnabled(!isChecked);
-                mFindPhoneAlertTitle.setEnabled(!isChecked);
+                //mFindPhoneAlert.setEnabled(!isChecked);
+                //mFindPhoneAlertTitle.setEnabled(!isChecked);
             }
         });
 
-        mCallOClick = (Button) findViewById(R.id.start_alert);
+        /*mCallOClick = (Button) findViewById(R.id.start_alert);
         mCallOClick.setOnTouchListener(new OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -270,7 +270,7 @@ public class OClickControlActivity extends Activity {
                     }
                     Intent alertIntent = new Intent(
                             OClickBLEService.ACTION_START_ALERT);
-                    alertIntent.putExtra(EXTRAS_ALERT_TYPE, 1);
+                    alertIntent.putExtra(EXTRAS_ALERT_TYPE, 2);
                     OClickControlActivity.this.sendBroadcast(alertIntent);
 
                     mHandler.postDelayed(new Runnable() {
@@ -285,7 +285,7 @@ public class OClickControlActivity extends Activity {
                 }
                 return true;
             }
-        });
+        });*/
 
         LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         mProgress = inflater.inflate(R.layout.actionbar_indeterminate_progress,
@@ -314,7 +314,7 @@ public class OClickControlActivity extends Activity {
         registerReceiver(mReceiver, filter);
 
         initConnectionState();
-        mHandler.post(mRingtoneLookupRunnable);
+        //mHandler.post(mRingtoneLookupRunnable);
 
         if (mBluetoothAdapter.isEnabled()) {
             setupConnection();
@@ -342,7 +342,7 @@ public class OClickControlActivity extends Activity {
         }
         updateConnectionState(mConnected ? R.string.connected
                 : R.string.disconnected);
-        mCallOClick.setEnabled(mConnected);
+        //mCallOClick.setEnabled(mConnected);
         invalidateOptionsMenu();
     }
 
@@ -490,7 +490,7 @@ public class OClickControlActivity extends Activity {
         CharSequence summary = null;
         try {
             Uri currentRingtone = getCurrentRingtone();
-            mFindPhoneAlertTone.setText(getResources().getString(R.string.find_phone_alert_tone_none));
+            //mFindPhoneAlertTone.setText(getResources().getString(R.string.find_phone_alert_tone_none));
             if(currentRingtone != null){
                 Cursor cursor = getContentResolver().query(currentRingtone,
                         new String[] { MediaStore.Audio.Media.TITLE }, null, null,
@@ -498,7 +498,7 @@ public class OClickControlActivity extends Activity {
                 if (cursor != null) {
                     if (cursor.moveToFirst()) {
                         summary = cursor.getString(0);
-                        mFindPhoneAlertTone.setText(summary);
+                        //mFindPhoneAlertTone.setText(summary);
                     }
                     cursor.close();
                 }
