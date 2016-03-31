@@ -34,7 +34,7 @@ public class OClickBootReceiver extends BroadcastReceiver {
             SharedPreferences prefs = PreferenceManager
                     .getDefaultSharedPreferences(context);
             if (prefs.getBoolean(
-                    OClickControlActivity.OCLICK_START_ON_BOOT_KEY, true)
+                    OClickControlActivity.OCLICK_START_ON_BOOT_KEY, false)
                     && prefs.getString(
                             OClickControlActivity.OCLICK_CONNECT_DEVICE, null) != null) {
                 final BluetoothManager bluetoothManager = (BluetoothManager) context
