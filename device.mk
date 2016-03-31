@@ -11,7 +11,12 @@ PRODUCT_PROPERTY_OVERRIDES += \
     audio.offload.pcm.16bit.enable=false \
     audio.offload.disable=true \
     audio.offload.video=false \
-    audio.offload.gapless.enabled=false
+    audio.offload.gapless.enabled=false \
+    ro.sf.lcd_density=480 \
+    persist.radio.multisim.config=dsds \
+    persist.radio.apm_sim_not_pwdn=1 \
+    persist.data.netmgrd.qos.enable=true \
+    ro.use_data_netmgrd=true
 
 # Include common makefile
 $(call inherit-product, device/oppo/msm8974-common/common.mk)
@@ -41,10 +46,4 @@ PRODUCT_COPY_FILES += \
 # Sensor configuration from Oppo
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/sensor/sensor_def_qcomdev.conf:system/etc/sensor_def_qcomdev.conf
-
-# Properties
-PRODUCT_PROPERTY_OVERRIDES += \
-    ro.sf.lcd_density=480 \
-    persist.radio.multisim.config=dsds
-
 
