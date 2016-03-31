@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2014 The OmniROM Project
+ *  Copyright (C) 2016 The OmniROM Project
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,9 +17,11 @@
  */
 package org.omnirom.omniclick;
 
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 
 import android.app.ActivityManagerNative;
 import android.app.ActivityManager;
@@ -32,6 +34,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
@@ -48,6 +51,7 @@ import android.media.IAudioService;
 import android.media.AudioManager;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
+import android.media.session.MediaSessionLegacyHelper;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.Handler;
@@ -67,6 +71,7 @@ import android.view.KeyEvent;
 public class OClickBLEService extends Service implements
         OnSharedPreferenceChangeListener {
     private final static String TAG = OClickBLEService.class.getSimpleName();
+    private final static boolean DEBUG = false;
 
     private BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
@@ -162,7 +167,7 @@ public class OClickBLEService extends Service implements
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 // just for debugging
-                displayGattServices(getSupportedGattServices());
+                if (DEBUG) displayGattServices(gatt, getSupportedGattServices());
 
                 registerOClickButton(gatt);
 
@@ -184,9 +189,7 @@ public class OClickBLEService extends Service implements
 
             int clickNum = 0;
             if (OClickGattAttributes.OPPO_OTOUCH_CLICK1_UUID
-                    .equals(characteristic.getUuid())
-                    || OClickGattAttributes.OPPO_OTOUCH_CLICK2_UUID
-                            .equals(characteristic.getUuid())) {
+                    .equals(characteristic.getUuid())) {
                 clickNum = readOClickClicks(characteristic);
             }
             if (clickNum == 0) {
@@ -195,32 +198,33 @@ public class OClickBLEService extends Service implements
 
             Log.d(TAG, String.format("Received click: %d", clickNum));
             boolean findPhoneAlert = mPrefs.getBoolean(
-                    OClickControlActivity.OCLICK_FIND_PHONE_ALERT_KEY, true);
+                    OClickControlActivity.OCLICK_FIND_PHONE_ALERT_KEY, false);
             boolean musicControl = mPrefs.getBoolean(
                     OClickControlActivity.OCLICK_MUSIC_CONTROL_KEY, false);
             boolean snapPicture = mPrefs.getBoolean(
-                    OClickControlActivity.OCLICK_SNAP_PICTURE_KEY, true);
+                    OClickControlActivity.OCLICK_SNAP_PICTURE_KEY, false);
 
             if (clickNum == 2) {
-                if (snapPicture && isCameraActive()) {
-                    Log.d(TAG, "camera active");
+                /*if (snapPicture) {
+                    Log.d(TAG, "focus picture");
                     triggerVirtualDownKeypress(KeyEvent.KEYCODE_FOCUS);
-                } else if (findPhoneAlert) {
+                } else*/ if (findPhoneAlert) {
+                    Log.d(TAG, "find alert");
                     handleFindMeAlert();
-                } /*else if (musicControl) {
+                } else if (musicControl) {
                     Log.d(TAG, "start/stop music");
                     dispatchMediaKeyWithWakeLockToAudioService(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE);
-                }*/
+                }
             }
             if (clickNum == 1) {
                 if (snapPicture /* && isCameraActive() */) {
                     Log.d(TAG, "snap picture");
                     triggerVirtualKeypress(KeyEvent.KEYCODE_CAMERA);
                 }
-                /*if (musicControl && isMusicActive()) {
+                if (musicControl && isMusicActive()) {
                     Log.d(TAG, "next track");
                     dispatchMediaKeyWithWakeLockToAudioService(KeyEvent.KEYCODE_MEDIA_NEXT);
-                }*/
+                }
             }
         }
 
@@ -230,6 +234,7 @@ public class OClickBLEService extends Service implements
             BluetoothGattCharacteristic charS = gatt.getService(
                     OClickGattAttributes.LINK_LOSS_UUID).getCharacteristic(
                     OClickGattAttributes.LINK_LOSS_CHAR_UUID);
+            if (DEBUG) Log.d(TAG, "onReadRemoteRssi rssi = " + rssi);
             if (rssi < -90 && !mAlerting) {
                 // start alert
                 Log.d(TAG, "Start proximity alert : " + rssi);
@@ -255,66 +260,80 @@ public class OClickBLEService extends Service implements
                     .getService(OClickGattAttributes.OPPO_OTOUCH_UUID);
             BluetoothGattCharacteristic trigger = service
                     .getCharacteristic(OClickGattAttributes.OPPO_OTOUCH_CLICK1_UUID);
-            if (trigger == null) {
-                trigger = service
-                        .getCharacteristic(OClickGattAttributes.OPPO_OTOUCH_CLICK2_UUID);
+            if (trigger != null) {
+                gatt.setCharacteristicNotification(trigger, true);
             }
-            gatt.setCharacteristicNotification(trigger, true);
         }
 
         private int readOClickClicks(BluetoothGattCharacteristic characteristic) {
             int clickNum = 0;
 
-            int format = -1;
             int flag = characteristic.getProperties();
-            if ((flag & 0x01) != 0) {
-                format = BluetoothGattCharacteristic.FORMAT_UINT16;
-            } else {
-                format = BluetoothGattCharacteristic.FORMAT_UINT8;
+            byte[] value = characteristic.getValue();
+            if (DEBUG) Log.d(TAG, "readOClickClicks flag = " + flag);
+            if (DEBUG) {
+                int i = 0;
+                for (byte val : characteristic.getValue()) {
+                    Log.d(TAG, "readOClickClicks raw value = " + i + ":" + Byte.toString(val));
+                    i++;
+                }
             }
-            int value = characteristic.getIntValue(format, 0);
-            if (value == 1) {
+
+            if (new Byte(value[2]).intValue() == 17) {
                 clickNum = 1;
-            } else if (value == 32) {
+            } else if (new Byte(value[2]).intValue() == 18) {
                 clickNum = 2;
             }
             return clickNum;
         }
     };
 
-    private void displayGattServices(List<BluetoothGattService> gattServices) {
+    private void registerCharacteristic(BluetoothGatt gatt, UUID serviceUuid, UUID characteristicsUuid) {
+        // Register trigger notification (Used for camera/alarm)
+        BluetoothGattService service = gatt
+                .getService(serviceUuid);
+        BluetoothGattCharacteristic trigger = service
+                .getCharacteristic(characteristicsUuid);
+        if (trigger != null) {
+            gatt.setCharacteristicNotification(trigger, true);
+        }
+    }
+
+    private void displayGattServices(BluetoothGatt gatt, List<BluetoothGattService> gattServices) {
         if (gattServices == null)
             return;
-        String uuid = null;
-        ArrayList<HashMap<String, String>> gattServiceData = new ArrayList<HashMap<String, String>>();
-        ArrayList<ArrayList<HashMap<String, String>>> gattCharacteristicData = new ArrayList<ArrayList<HashMap<String, String>>>();
-        ArrayList<ArrayList<BluetoothGattCharacteristic>> mGattCharacteristics = new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
+        UUID uuid1 = null;
+        UUID uuid2 = null;
+        UUID uuid3 = null;
 
         // Loops through available GATT Services.
         for (BluetoothGattService gattService : gattServices) {
-            HashMap<String, String> currentServiceData = new HashMap<String, String>();
-            uuid = gattService.getUuid().toString();
-            currentServiceData.put(LIST_UUID, uuid);
-            gattServiceData.add(currentServiceData);
+            uuid1 = gattService.getUuid();
+            Log.d(TAG, "Service:" + LIST_UUID + " " + uuid1.toString());
 
-            ArrayList<HashMap<String, String>> gattCharacteristicGroupData = new ArrayList<HashMap<String, String>>();
+            List<BluetoothGattService> includedServices = gattService.getIncludedServices();
+            if (includedServices != null && includedServices.size() != 0) {
+                Log.d(TAG, "Included:");
+                displayGattServices(gatt, includedServices);
+            }
+
             List<BluetoothGattCharacteristic> gattCharacteristics = gattService
                     .getCharacteristics();
-            ArrayList<BluetoothGattCharacteristic> charas = new ArrayList<BluetoothGattCharacteristic>();
 
             // Loops through available Characteristics.
             for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
-                charas.add(gattCharacteristic);
-                HashMap<String, String> currentCharaData = new HashMap<String, String>();
-                uuid = gattCharacteristic.getUuid().toString();
-                currentCharaData.put(LIST_UUID, uuid);
-                gattCharacteristicGroupData.add(currentCharaData);
+                uuid2 = gattCharacteristic.getUuid();
+                Log.d(TAG, "Characteristics:" + LIST_UUID + " " + uuid2.toString());
+
+                List<BluetoothGattDescriptor> gattDescriptors = gattCharacteristic
+                    .getDescriptors();
+
+                for (BluetoothGattDescriptor gattDescriptor : gattDescriptors) {
+                    uuid3 = gattDescriptor.getUuid(); 
+                    Log.d(TAG, "Descriptor:" + LIST_UUID + " " + uuid3.toString());
+                }
             }
-            mGattCharacteristics.add(charas);
-            gattCharacteristicData.add(gattCharacteristicGroupData);
         }
-        Log.d(TAG, "" + gattServiceData.toString() + " "
-                + gattCharacteristicData.toString());
     }
 
     public class LocalBinder extends Binder {
@@ -532,7 +551,7 @@ public class OClickBLEService extends Service implements
 
     private void toggleRssiListener() {
         boolean fence = mPrefs.getBoolean(
-                OClickControlActivity.OCLICK_PROXIMITY_ALERT_KEY, true);
+                OClickControlActivity.OCLICK_PROXIMITY_ALERT_KEY, false);
 
         mRssiPoll.removeCallbacksAndMessages(null);
         if (fence) {
@@ -548,29 +567,25 @@ public class OClickBLEService extends Service implements
     }
 
     private void startAlert(int alertType) {
-        byte[] value = new byte[1];
         BluetoothGattCharacteristic charS = mBluetoothGatt.getService(
                 OClickGattAttributes.IMMEDIATE_ALERT_UUID).getCharacteristic(
                 OClickGattAttributes.IMMEDIATE_ALERT_CHAR_UUID);
 
-        Log.d(TAG, "Start alert");
-        value[0] = Integer.valueOf(alertType).byteValue();
+        Log.d(TAG, "Start alert " + alertType);
         if (charS != null) {
-            charS.setValue(value);
+            charS.setValue(alertType, BluetoothGattCharacteristic.FORMAT_UINT8, 0);
             mBluetoothGatt.writeCharacteristic(charS);
         }
     }
 
     private void stopAlert() {
-        byte[] value = new byte[1];
         BluetoothGattCharacteristic charS = mBluetoothGatt.getService(
                 OClickGattAttributes.IMMEDIATE_ALERT_UUID).getCharacteristic(
                 OClickGattAttributes.IMMEDIATE_ALERT_CHAR_UUID);
 
         Log.d(TAG, "Stop alert");
-        value[0] = 0;
         if (charS != null) {
-            charS.setValue(value);
+            charS.setValue(0, BluetoothGattCharacteristic.FORMAT_UINT8, 0);
             mBluetoothGatt.writeCharacteristic(charS);
         }
     }
@@ -649,13 +664,13 @@ public class OClickBLEService extends Service implements
         return audioService;
     }
 
-    /*boolean isMusicActive() {
+    boolean isMusicActive() {
         final AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         if (am == null) {
             return false;
         }
-        return am.isLocalOrRemoteMusicActive();
-    }*/
+        return am.isMusicActive();
+    }
 
     private void adjustRingtoneProperties() {
         final AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
@@ -685,25 +700,27 @@ public class OClickBLEService extends Service implements
         mRingerVolumeSaved = am.getStreamVolume(AudioManager.STREAM_RING);
     }
 
-    /*private void dispatchMediaKeyWithWakeLockToAudioService(int keycode) {
+    private void dispatchMediaKeyWithWakeLockToAudioService(int keycode) {
         if (ActivityManagerNative.isSystemReady()) {
             IAudioService audioService = getAudioService();
             if (audioService != null) {
-                try {
-                    KeyEvent event = new KeyEvent(SystemClock.uptimeMillis(),
-                            SystemClock.uptimeMillis(), KeyEvent.ACTION_DOWN,
-                            keycode, 0);
-                    audioService.dispatchMediaKeyEventUnderWakelock(event);
-                    event = KeyEvent.changeAction(event, KeyEvent.ACTION_UP);
-                    audioService.dispatchMediaKeyEventUnderWakelock(event);
-                } catch (RemoteException e) {
-                    Log.e(TAG, "dispatchMediaKeyEvent threw exception " + e);
-                }
+                KeyEvent event = new KeyEvent(SystemClock.uptimeMillis(),
+                        SystemClock.uptimeMillis(), KeyEvent.ACTION_DOWN,
+                        keycode, 0);
+                dispatchMediaKeyEventUnderWakelock(event);
+                event = KeyEvent.changeAction(event, KeyEvent.ACTION_UP);
+                dispatchMediaKeyEventUnderWakelock(event);
             }
         }
-    }*/
+    }
 
-    private boolean isCameraActive() {
+    private void dispatchMediaKeyEventUnderWakelock(KeyEvent event) {
+        if (ActivityManagerNative.isSystemReady()) {
+            MediaSessionLegacyHelper.getHelper(this).sendMediaButtonEvent(event, true);
+        }
+    }
+
+    /*private boolean isCameraActive() {
         final ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
         final List<ActivityManager.RecentTaskInfo> recentTasks = am
                 .getRecentTasks(3, ActivityManager.RECENT_IGNORE_UNAVAILABLE);
@@ -724,7 +741,7 @@ public class OClickBLEService extends Service implements
             return true;
         }
         return false;
-    }
+    }*/
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences,

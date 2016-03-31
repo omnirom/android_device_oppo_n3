@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2014 The OmniROM Project
+ *  Copyright (C) 2016 The OmniROM Project
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -93,7 +93,7 @@ public class OClickControlActivity extends Activity {
     private TextView mMusicControlSummary;
     private View mProgress;
     private ProgressBar mProgressBar;
-    private Button mCallOClick;
+    //private Button mCallOClick;
 
     // Handles various events fired by the Service.
     // ACTION_GATT_CONNECTED: connected to a GATT server.
@@ -120,6 +120,7 @@ public class OClickControlActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
+        getActionBar().setDisplayHomeAsUpEnabled(true);
         setContentView(R.layout.oclick_main);
         mPrefs = PreferenceManager.getDefaultSharedPreferences(this);
         mHandler = new Handler();
@@ -150,6 +151,25 @@ public class OClickControlActivity extends Activity {
         }
 
         mConnectionState = (TextView) findViewById(R.id.connection_state);
+        mConnectionState.setOnTouchListener(new OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                    if (mConnected) {
+                        Intent disconnectIntent = new Intent(
+                                OClickBLEService.ACTION_DISCONNECT);
+                        sendBroadcast(disconnectIntent);
+                    } else if (mDeviceAddress != null) {
+                        setConnecting(true);
+                        Intent connectIntent = new Intent(
+                                OClickBLEService.ACTION_CONNECT);
+                        connectIntent.putExtra(EXTRAS_DEVICE_ADDRESS, mDeviceAddress);
+                        sendBroadcast(connectIntent);
+                    }
+                }
+                return true;
+            }
+        });
         mDeviceAddressField = (TextView) findViewById(R.id.device_address);
 
         mDeviceAddress = mPrefs.getString(
@@ -159,7 +179,7 @@ public class OClickControlActivity extends Activity {
 
         CheckBox startOnBoot = (CheckBox) findViewById(R.id.start_on_boot);
         startOnBoot.setChecked(mPrefs.getBoolean(
-                OClickControlActivity.OCLICK_START_ON_BOOT_KEY, true));
+                OClickControlActivity.OCLICK_START_ON_BOOT_KEY, false));
         startOnBoot.setOnCheckedChangeListener(new OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView,
@@ -173,7 +193,7 @@ public class OClickControlActivity extends Activity {
 
         CheckBox proximityAlert = (CheckBox) findViewById(R.id.proximity_alert);
         proximityAlert.setChecked(mPrefs.getBoolean(
-                OClickControlActivity.OCLICK_PROXIMITY_ALERT_KEY, true));
+                OClickControlActivity.OCLICK_PROXIMITY_ALERT_KEY, false));
         proximityAlert
                 .setOnCheckedChangeListener(new OnCheckedChangeListener() {
                     @Override
@@ -190,7 +210,7 @@ public class OClickControlActivity extends Activity {
 
         mFindPhoneAlert = (CheckBox) findViewById(R.id.find_phone_alert);
         mFindPhoneAlert.setChecked(mPrefs.getBoolean(
-                OClickControlActivity.OCLICK_FIND_PHONE_ALERT_KEY, true));
+                OClickControlActivity.OCLICK_FIND_PHONE_ALERT_KEY, false));
         mFindPhoneAlert
                 .setOnCheckedChangeListener(new OnCheckedChangeListener() {
                     @Override
@@ -202,9 +222,9 @@ public class OClickControlActivity extends Activity {
                                         isChecked).commit();
                         mFindPhoneAlertTone.setEnabled(isChecked);
                         mFindPhoneAlertToneTitle.setEnabled(isChecked);
-                        mMusicControl.setEnabled(!isChecked);
-                        mMusicControlTitle.setEnabled(!isChecked);
-                        mMusicControlSummary.setEnabled(!isChecked);
+                        //mMusicControl.setEnabled(!isChecked);
+                        //mMusicControlTitle.setEnabled(!isChecked);
+                        //mMusicControlSummary.setEnabled(!isChecked);
                     }
                 });
 
@@ -225,7 +245,7 @@ public class OClickControlActivity extends Activity {
 
         CheckBox snapPicture = (CheckBox) findViewById(R.id.snap_picture);
         snapPicture.setChecked(mPrefs.getBoolean(
-                OClickControlActivity.OCLICK_SNAP_PICTURE_KEY, true));
+                OClickControlActivity.OCLICK_SNAP_PICTURE_KEY, false));
         snapPicture.setOnCheckedChangeListener(new OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView,
@@ -242,11 +262,11 @@ public class OClickControlActivity extends Activity {
         mMusicControl = (CheckBox) findViewById(R.id.music_control);
         mMusicControl.setChecked(mPrefs.getBoolean(
                 OClickControlActivity.OCLICK_MUSIC_CONTROL_KEY, false));
-        mMusicControl.setEnabled(!mFindPhoneAlert.isChecked());
-        mMusicControlTitle.setEnabled(!mFindPhoneAlert.isChecked());
-        mMusicControlSummary.setEnabled(!mFindPhoneAlert.isChecked());
-        mFindPhoneAlert.setEnabled(!mMusicControl.isChecked());
-        mFindPhoneAlertTitle.setEnabled(!mMusicControl.isChecked());
+        //mMusicControl.setEnabled(!mFindPhoneAlert.isChecked());
+        //mMusicControlTitle.setEnabled(!mFindPhoneAlert.isChecked());
+        //mMusicControlSummary.setEnabled(!mFindPhoneAlert.isChecked());
+        /*mFindPhoneAlert.setEnabled(!mMusicControl.isChecked());
+        mFindPhoneAlertTitle.setEnabled(!mMusicControl.isChecked());*/
         mMusicControl.setOnCheckedChangeListener(new OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView,
@@ -255,12 +275,12 @@ public class OClickControlActivity extends Activity {
                         .putBoolean(
                                 OClickControlActivity.OCLICK_MUSIC_CONTROL_KEY,
                                 isChecked).commit();
-                mFindPhoneAlert.setEnabled(!isChecked);
-                mFindPhoneAlertTitle.setEnabled(!isChecked);
+                //mFindPhoneAlert.setEnabled(!isChecked);
+                //mFindPhoneAlertTitle.setEnabled(!isChecked);
             }
         });
 
-        mCallOClick = (Button) findViewById(R.id.start_alert);
+        /*mCallOClick = (Button) findViewById(R.id.start_alert);
         mCallOClick.setOnTouchListener(new OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -270,7 +290,7 @@ public class OClickControlActivity extends Activity {
                     }
                     Intent alertIntent = new Intent(
                             OClickBLEService.ACTION_START_ALERT);
-                    alertIntent.putExtra(EXTRAS_ALERT_TYPE, 1);
+                    alertIntent.putExtra(EXTRAS_ALERT_TYPE, 2);
                     OClickControlActivity.this.sendBroadcast(alertIntent);
 
                     mHandler.postDelayed(new Runnable() {
@@ -285,7 +305,7 @@ public class OClickControlActivity extends Activity {
                 }
                 return true;
             }
-        });
+        });*/
 
         LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         mProgress = inflater.inflate(R.layout.actionbar_indeterminate_progress,
@@ -342,7 +362,7 @@ public class OClickControlActivity extends Activity {
         }
         updateConnectionState(mConnected ? R.string.connected
                 : R.string.disconnected);
-        mCallOClick.setEnabled(mConnected);
+        //mCallOClick.setEnabled(mConnected);
         invalidateOptionsMenu();
     }
 
@@ -426,6 +446,9 @@ public class OClickControlActivity extends Activity {
                 setConnecting(false);
                 rescanDevice();
             }
+            return true;
+        case android.R.id.home:
+            finish();
             return true;
         }
         return super.onOptionsItemSelected(item);
