@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2014 The OmniROM Project
+ *  Copyright (C) 2016 The OmniROM Project
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,13 +24,13 @@ public class OClickGattAttributes {
     public static UUID LINK_LOSS_UUID = UUID
             .fromString("00001803-0000-1000-8000-00805f9b34fb");
     public static UUID LINK_LOSS_CHAR_UUID = UUID
-            .fromString("00001803-0000-1000-8000-00805f9b34fb");
+            .fromString("00002a06-0000-1000-8000-00805f9b34fb");
+
     public static UUID OPPO_OTOUCH_UUID = UUID
-            .fromString("0000ffe0-0000-1000-8000-00805f9b34fb");
+            .fromString("00002200-0000-1000-8000-00805f9b34fb");
     public static UUID OPPO_OTOUCH_CLICK1_UUID = UUID
-            .fromString("0000ffe1-0000-1000-8000-00805f9b34fb");
-    public static UUID OPPO_OTOUCH_CLICK2_UUID = UUID
-            .fromString("f000ffe1-0451-4000-b000-000000000000");
+            .fromString("00002201-0000-1000-8000-00805f9b34fb");
+
     public static UUID IMMEDIATE_ALERT_UUID = UUID
             .fromString("00001802-0000-1000-8000-00805f9b34fb"); // 0-2
     public static UUID IMMEDIATE_ALERT_CHAR_UUID = UUID

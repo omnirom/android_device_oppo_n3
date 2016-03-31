@@ -36,7 +36,7 @@
     <string name="find_phone_alert_notification_title">Phone locator alert</string>
     <string name="find_phone_alert_notification_text">Tap to dismiss</string>
     <string name="music_control_title">Music control</string>
-    <string name="music_control_summary">Double click to play/pause. Single click to skip to next track</string>
+    <string name="music_control_summary">Single click to skip to next track. Double click to play/pause if find phone disabled.</string>
     <string name="category_state_title">Status</string>
     <string name="device_address_title">Device address</string>
     <string name="device_state_title">State</string>
