@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "98faad2e_93b9fd75",
+        "filename": "configs/init.n3.rc",
+        "patchSetId": 6
+      },
+      "lineNbr": 86,
+      "author": {
+        "id": 1000026
+      },
+      "writtenOn": "2016-04-05T14:59:32Z",
+      "side": 1,
+      "message": "can also be removed",
+      "revId": "da134b5d6bde4194a007716f4abc547e3f8c2ed2",
+      "serverId": "56841c99-7c94-43d4-bf0b-cb4707e66d55",
+      "unresolved": false
+    }
+  ]
+}
