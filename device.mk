@@ -5,7 +5,8 @@ LOCAL_PATH := device/oppo/n3
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/mixer_paths.xml:/system/etc/mixer_paths.xml \
     $(LOCAL_PATH)/configs/audio_policy.conf:system/etc/audio_policy.conf \
-    $(LOCAL_PATH)/configs/media_profiles.xml:system/etc/media_profiles.xml
+    $(LOCAL_PATH)/configs/media_profiles.xml:system/etc/media_profiles.xml \
+    $(LOCAL_PATH)/configs/audio_platform_info.xml:system/etc/audio_platform_info.xml
 
 # Properties
 PRODUCT_PROPERTY_OVERRIDES += \
