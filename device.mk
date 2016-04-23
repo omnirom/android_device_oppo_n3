@@ -14,7 +14,8 @@ PRODUCT_PROPERTY_OVERRIDES += \
     audio.offload.disable=true \
     audio.offload.video=false \
     audio.offload.gapless.enabled=false \
-    ro.sf.lcd_density=480
+    ro.sf.lcd_density=480 \
+    persist.radio.multisim.config=dsds
 
 DEVICE_PACKAGE_OVERLAYS += $(LOCAL_PATH)/overlay
 
