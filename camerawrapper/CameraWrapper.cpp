@@ -598,6 +598,7 @@ static int camera_device_close(hw_device_t *device)
         gVendorDeviceHandle->common.close((hw_device_t*) gVendorDeviceHandle);
         rotate_camera(false, 0, 1000);
         free(fixed_set_params);
+        fixed_set_params = NULL;
         gVendorDeviceHandle = NULL;
     }
 
