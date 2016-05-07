@@ -36,7 +36,8 @@ PRODUCT_PACKAGES += \
     NfcNci \
     nfc_nci.n3 \
     librmnetctl \
-    OmniClick
+    OmniClick \
+    SnapdragonCamera
 
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/libnfc-nxp.conf:system/etc/libnfc-nxp.conf \
